@@ -65,6 +65,11 @@ io.on("connection", (socket) => {
       delete userSocketMap[socket.id];
     });
   });
+  socket.on(ACTIONS.CODE_CHANGE, (changesInData) => {
+    const roomId = Array.from(socket.rooms).find((id) => id !== socket.id);
+    console.log(changesInData);
+    socket.broadcast.to(roomId).emit(ACTIONS.SYNC_CODE, changesInData);
+  });
 });
 
 server.listen(3000, () => {

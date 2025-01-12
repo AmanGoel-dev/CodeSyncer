@@ -12,18 +12,17 @@ const EditorPage = () => {
   const SocketRef = useRef(null);
   const reactNavigator = useNavigate();
   const [clients, setclients] = useState([]);
-
+  const [isSocketReady, setIsSocketReady] = useState(false);
+  const handleErrors = (e) => {
+    console.log("socket error ", e);
+    toast.error("Socket Connection Failed, try again later");
+    reactNavigator("/");
+  };
   useEffect(() => {
     const init = async () => {
       SocketRef.current = await initalSocket();
       SocketRef.current.on("connect_error", (err) => handleErrors(err));
       SocketRef.current.on("connect_failed", (err) => handleErrors(err));
-
-      const handleErrors = (e) => {
-        console.log("socket error ", e);
-        toast.error("Socket Connection Failed, try again later");
-        reactNavigator("/");
-      };
 
       SocketRef.current.emit(ACTIONS.JOIN, {
         roomId,
@@ -49,13 +48,16 @@ const EditorPage = () => {
           return prev.filter((client) => client.socketId !== socketId);
         });
       });
+      setIsSocketReady(true);
     };
     init();
 
     return () => {
-      SocketRef.current.off(ACTIONS.JOINED);
-      SocketRef.current.off(ACTIONS.DISCONNECTED);
-      SocketRef.current.disconnect();
+      if (SocketRef.current) {
+        SocketRef.current.off(ACTIONS.JOINED);
+        SocketRef.current.off(ACTIONS.DISCONNECTED);
+        SocketRef.current.disconnect();
+      }
     };
   }, []);
 
@@ -99,8 +101,12 @@ const EditorPage = () => {
         </button>
       </div>
 
-      <div className=" overflow-hidden bg-[#282c34]">
-        <Editorcomp />
+      <div className="overflow-hidden bg-[#282c34]">
+        {isSocketReady ? (
+          <Editorcomp SocketRef={SocketRef} /> // Only render the editor once socket is ready
+        ) : (
+          <p>Loading editor...</p> // You can show a loading message while waiting for the socket connection
+        )}
       </div>
     </div>
   );

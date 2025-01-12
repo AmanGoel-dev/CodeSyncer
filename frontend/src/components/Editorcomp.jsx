@@ -8,12 +8,48 @@ import { lineNumbers } from "@codemirror/view"; // Add line numbers
 import { keymap } from "@codemirror/view"; // Add keymap support
 import { defaultKeymap, indentWithTab } from "@codemirror/commands"; // Default keybindings for basic functionality
 import { closeBrackets } from "@codemirror/autocomplete";
-
-const Editorcomp = () => {
+import { Socket } from "socket.io-client";
+import { ACTIONS } from "@amangoel-dev/codesyncer";
+const Editorcomp = ({ SocketRef }) => {
   const [code, setCode] = useState("// Start coding...");
   const editorRef = useRef(null);
-
+  const editorViewRef = useRef(null);
+  const isLocalChange = useRef(true);
   useEffect(() => {
+    const onUpdate = EditorView.updateListener.of((update) => {
+      if (update.docChanged && isLocalChange.current) {
+        // Get updated content
+        const updatedCode = update.state.doc.toString();
+        if (updatedCode !== code)
+          update.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
+            const changesInData = {
+              from: fromA,
+              to: toA,
+              text: inserted.toString(),
+            };
+            console.log(changesInData);
+            SocketRef.current.emit(ACTIONS.CODE_CHANGE, changesInData);
+          });
+        setCode(updatedCode); // Update the state}
+      }
+    });
+    if (SocketRef.current) {
+      SocketRef.current.on(ACTIONS.SYNC_CODE, ({ from, to, text }) => {
+        console.log("Received changes: ", { from, to, text });
+        isLocalChange.current = false;
+        if (editorViewRef.current) {
+          editorViewRef.current.dispatch({
+            changes: {
+              from,
+              to,
+              insert: text,
+            },
+          });
+        }
+        isLocalChange.current = true;
+      });
+    }
+
     const startState = EditorState.create({
       doc: code,
       extensions: [
@@ -23,6 +59,7 @@ const Editorcomp = () => {
         javascript(), // Add JavaScript language support
         oneDark, // Apply dark theme
         closeBrackets(),
+        onUpdate,
       ],
     });
 
@@ -30,11 +67,15 @@ const Editorcomp = () => {
       state: startState,
       parent: editorRef.current,
     });
+    editorViewRef.current = view;
 
     return () => {
       view.destroy();
+      if (SocketRef.current) {
+        SocketRef.current.off(ACTIONS.SYNC_CODE);
+      }
     };
-  }, [code]);
+  }, []);
 
   return (
     <div className="h-full">
