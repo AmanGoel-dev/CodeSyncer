@@ -6,7 +6,7 @@ import { autoCloseTags, javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { lineNumbers } from "@codemirror/view"; // Add line numbers
 import { keymap } from "@codemirror/view"; // Add keymap support
-import { defaultKeymap, indentWithTab } from "@codemirror/commands"; // Default keybindings for basic functionality
+import { defaultKeymap, indentWithTab, insertTab } from "@codemirror/commands"; // Default keybindings for basic functionality
 import { closeBrackets } from "@codemirror/autocomplete";
 import { Socket } from "socket.io-client";
 import { ACTIONS } from "@amangoel-dev/codesyncer";
@@ -41,7 +41,7 @@ const Editorcomp = ({ SocketRef }) => {
           editorViewRef.current.dispatch({
             changes: {
               from,
-              to,
+              to: editorViewRef.current.state.doc.length, // this gets the doc length as the length of text and doc differ, as backend was sending the text and frontend is doc, so above line get the length of the text in the insert , and when we se incremental change then it give that length
               insert: text,
             },
           });
@@ -55,10 +55,10 @@ const Editorcomp = ({ SocketRef }) => {
       extensions: [
         lineNumbers(), // Enable line numbers
         keymap.of(defaultKeymap),
-        keymap.of(indentWithTab), // Add default keymap for commands
+        keymap.of(indentWithTab),
         javascript(), // Add JavaScript language support
         oneDark, // Apply dark theme
-        closeBrackets(),
+        // closeBrackets(),
         onUpdate,
       ],
     });
@@ -75,7 +75,7 @@ const Editorcomp = ({ SocketRef }) => {
         SocketRef.current.off(ACTIONS.SYNC_CODE);
       }
     };
-  }, []);
+  }, [SocketRef.current]);
 
   return (
     <div className="h-full">

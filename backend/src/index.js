@@ -16,6 +16,7 @@ const io = new Server(server, {
 });
 // in memory database
 const userSocketMap = {};
+const roomCodeMap = {};
 
 function getAllConnectedClinets(roomId) {
   // this method get the all the sockets connected in the particular room
@@ -28,7 +29,6 @@ function getAllConnectedClinets(roomId) {
   });
 }
 
-// a checking end point
 app.get("/", (req, res) => {
   res.json({
     msg: "hello everyone testing the routes",
@@ -43,6 +43,17 @@ io.on("connection", (socket) => {
     userSocketMap[socket.id] = username;
     // let the user join the room
     socket.join(roomId);
+
+    if (roomCodeMap[roomId]) {
+      socket.emit(ACTIONS.SYNC_CODE, {
+        from: 0,
+        to: roomCodeMap[roomId].length,
+        text: roomCodeMap[roomId],
+      });
+    } else {
+      // Initialize code for the room if not already set
+      roomCodeMap[roomId] = "// Start coding...";
+    }
     // get all the clients in the room
     const clients = getAllConnectedClinets(roomId);
     clients.forEach((client) => {
@@ -67,8 +78,17 @@ io.on("connection", (socket) => {
   });
   socket.on(ACTIONS.CODE_CHANGE, (changesInData) => {
     const roomId = Array.from(socket.rooms).find((id) => id !== socket.id);
-    console.log(changesInData);
-    socket.broadcast.to(roomId).emit(ACTIONS.SYNC_CODE, changesInData);
+
+    if (roomId) {
+      // Apply changes to the current code for the room
+      const { from, to, text } = changesInData;
+      const currentCode = roomCodeMap[roomId] || "";
+      roomCodeMap[roomId] =
+        currentCode.slice(0, from) + text + currentCode.slice(to);
+      console.log(roomCodeMap[roomId]);
+      // Broadcast changes to other users in the room
+      socket.broadcast.to(roomId).emit(ACTIONS.SYNC_CODE, changesInData);
+    }
   });
 });
 
