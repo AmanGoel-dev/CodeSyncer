@@ -10,8 +10,8 @@ import { defaultKeymap, indentWithTab, insertTab } from "@codemirror/commands"; 
 import { closeBrackets } from "@codemirror/autocomplete";
 import { Socket } from "socket.io-client";
 import { ACTIONS } from "@amangoel-dev/codesyncer";
-const Editorcomp = ({ SocketRef }) => {
-  const [code, setCode] = useState("// Start coding...");
+const Editorcomp = ({ SocketRef, codechange }) => {
+  const coderef = useRef("");
   const editorRef = useRef(null);
   const editorViewRef = useRef(null);
   const isLocalChange = useRef(true);
@@ -20,7 +20,8 @@ const Editorcomp = ({ SocketRef }) => {
       if (update.docChanged && isLocalChange.current) {
         // Get updated content
         const updatedCode = update.state.doc.toString();
-        if (updatedCode !== code)
+        console.log(updatedCode);
+        if (updatedCode !== coderef.current) {
           update.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
             const changesInData = {
               from: fromA,
@@ -30,7 +31,9 @@ const Editorcomp = ({ SocketRef }) => {
             console.log(changesInData);
             SocketRef.current.emit(ACTIONS.CODE_CHANGE, changesInData);
           });
-        setCode(updatedCode); // Update the state}
+          coderef.current = updatedCode; // Update the state}
+          codechange(coderef.current);
+        }
       }
     });
     if (SocketRef.current) {
@@ -51,7 +54,7 @@ const Editorcomp = ({ SocketRef }) => {
     }
 
     const startState = EditorState.create({
-      doc: code,
+      doc: coderef.current,
       extensions: [
         lineNumbers(), // Enable line numbers
         keymap.of(defaultKeymap),

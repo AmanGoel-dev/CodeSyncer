@@ -1,10 +1,18 @@
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+import axios from "axios";
+dotenv.config();
 import { Server } from "socket.io";
 import { createServer } from "http";
 import { log } from "console";
 import { ACTIONS } from "@amangoel-dev/codesyncer";
+const ApiKey = process.env.RapidKey;
+const judgeurl = process.env.Judge0_url;
+console.log(ApiKey, "heleo");
 const app = express();
+app.use(express.json());
+app.use(cors());
 //creating the server here
 const server = createServer(app);
 const io = new Server(server, {
@@ -13,6 +21,7 @@ const io = new Server(server, {
     credentials: true,
     methods: ["GET", "POST"],
   },
+  transports: ["websocket", "polling"],
 });
 // in memory database
 const userSocketMap = {};
@@ -29,10 +38,36 @@ function getAllConnectedClinets(roomId) {
   });
 }
 
-app.get("/", (req, res) => {
-  res.json({
-    msg: "hello everyone testing the routes",
-  });
+app.post("/submit-code", async (req, res) => {
+  const { language_id, source_code, stdin } = req.body;
+  console.log(language_id, source_code);
+  try {
+    const response = await axios.post(
+      judgeurl,
+      { language_id, source_code, stdin },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-RapidAPI-Key": ApiKey,
+          "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+        },
+      }
+    );
+
+    console.log(response.data);
+    const { token } = response.data;
+
+    const resultresponse = await axios.get(`${judgeurl}/${token}`, {
+      headers: {
+        "X-RapidAPI-Key": ApiKey,
+        "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+      },
+    });
+    console.log(resultresponse.data);
+    res.json(resultresponse.data);
+  } catch (e) {
+    // console.log(e);
+  }
 });
 
 io.on("connection", (socket) => {

@@ -5,14 +5,29 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { initalSocket } from "../Sockets/Socket";
 import { ACTIONS } from "@amangoel-dev/codesyncer";
 import toast from "react-hot-toast";
-
+import { codePointAt } from "@codemirror/state";
+import axios from "axios";
 const EditorPage = () => {
+  const Code = useRef();
   const { roomId } = useParams();
   const location = useLocation();
   const SocketRef = useRef(null);
   const reactNavigator = useNavigate();
   const [clients, setclients] = useState([]);
   const [isSocketReady, setIsSocketReady] = useState(false);
+  const submitcode = async () => {
+    const response = await axios.post("http://localhost:3000/submit-code", {
+      language_id: 63,
+      source_code: Code.current,
+      stdin: "hi",
+    });
+    console.log(response.data);
+    if (response.data.status.description == "Accepted") {
+      toast.success("Code Run succesfully");
+    } else {
+      toast.error("Compilation failed");
+    }
+  };
   const handleErrors = (e) => {
     console.log("socket error ", e);
     toast.error("Socket Connection Failed, try again later");
@@ -92,6 +107,15 @@ const EditorPage = () => {
         </div>
         <button
           type="button"
+          className="text-white bg-green-600  hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-green-300 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
+          onClick={() => {
+            submitcode();
+          }}
+        >
+          Submit Code
+        </button>
+        <button
+          type="button"
           className="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
           onClick={copyId}
         >
@@ -111,7 +135,13 @@ const EditorPage = () => {
 
       <div className="overflow-hidden bg-[#282c34]">
         {isSocketReady ? (
-          <Editorcomp SocketRef={SocketRef} /> // Only render the editor once socket is ready
+          <Editorcomp
+            SocketRef={SocketRef}
+            codechange={(val) => {
+              Code.current = val;
+              console.log(Code);
+            }}
+          /> // Only render the editor once socket is ready
         ) : (
           <p>Loading editor...</p> // a loading message while waiting for the socket connection
         )}

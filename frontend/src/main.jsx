@@ -17,9 +17,7 @@ import EditorPage from "./pages/EditorPage.jsx";
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
-      <Route path="/" element={<Home />} />
-
-      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/" element={<Dashboard />} />
       <Route path="/editor/:roomId" element={<EditorPage />} />
     </>
   )
