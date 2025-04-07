@@ -41,6 +41,7 @@ function getAllConnectedClinets(roomId) {
 app.post("/submit-code", async (req, res) => {
   const { language_id, source_code, stdin } = req.body;
   console.log(language_id, source_code);
+
   try {
     const response = await axios.post(
       judgeurl,
@@ -54,19 +55,33 @@ app.post("/submit-code", async (req, res) => {
       }
     );
 
-    console.log(response.data);
     const { token } = response.data;
+    console.log("Token:", token);
 
-    const resultresponse = await axios.get(`${judgeurl}/${token}`, {
-      headers: {
-        "X-RapidAPI-Key": ApiKey,
-        "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
-      },
-    });
+    // Polling until the result is ready
+    let resultresponse;
+    for (let i = 0; i < 10; i++) {
+      resultresponse = await axios.get(`${judgeurl}/${token}`, {
+        headers: {
+          "X-RapidAPI-Key": ApiKey,
+          "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+        },
+      });
+
+      if (resultresponse.data.status.id >= 3) {
+        break;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
     console.log(resultresponse.data);
     res.json(resultresponse.data);
   } catch (e) {
-    console.log(e);
+    console.error(e.response?.data || e.message);
+    res
+      .status(500)
+      .json({ error: "Something went wrong with code submission." });
   }
 });
 
