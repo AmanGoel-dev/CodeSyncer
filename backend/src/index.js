@@ -5,7 +5,7 @@ import axios from "axios";
 dotenv.config();
 import { Server } from "socket.io";
 import { createServer } from "http";
-import { log } from "console";
+
 import { ACTIONS } from "@amangoel-dev/codesyncer";
 const ApiKey = process.env.RapidKey;
 const judgeurl = process.env.Judge0_url;
@@ -66,7 +66,7 @@ app.post("/submit-code", async (req, res) => {
     console.log(resultresponse.data);
     res.json(resultresponse.data);
   } catch (e) {
-    // console.log(e);
+    console.log(e);
   }
 });
 
