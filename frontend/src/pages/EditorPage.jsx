@@ -9,6 +9,7 @@ import { codePointAt } from "@codemirror/state";
 import axios from "axios";
 const EditorPage = () => {
   const Code = useRef();
+  const backend_url = import.meta.env.VITE_BACKEND_URL;
   const { roomId } = useParams();
   const location = useLocation();
   const SocketRef = useRef(null);
@@ -16,7 +17,7 @@ const EditorPage = () => {
   const [clients, setclients] = useState([]);
   const [isSocketReady, setIsSocketReady] = useState(false);
   const submitcode = async () => {
-    const response = await axios.post("http://localhost:3000/submit-code", {
+    const response = await axios.post(`${backend_url}/submit-code`, {
       language_id: 63,
       source_code: Code.current,
       stdin: "hi",
