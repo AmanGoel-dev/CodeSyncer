@@ -37,19 +37,39 @@ const Editorcomp = ({ SocketRef, codechange }) => {
       }
     });
     if (SocketRef.current) {
-      SocketRef.current.on(ACTIONS.SYNC_CODE, ({ from, to, text }) => {
-        console.log("Received changes: ", { from, to, text });
-        isLocalChange.current = false;
-        if (editorViewRef.current) {
+      SocketRef.current.on(ACTIONS.SYNC_CODE, (data) => {
+        if (!editorViewRef.current) return;
+        if (data.fullSync) {
+          // Initial full doc sync (when a user joins)
+          isLocalChange.current = false;
+          const { code } = data;
+          editorViewRef.current.dispatch({
+            changes: {
+              from: 0,
+              to: editorViewRef.current.state.doc.length,
+              insert: code,
+            },
+          });
+          coderef.current = code;
+          codechange(code);
+          isLocalChange.current = true;
+        } else {
+          const { from, to, text } = data;
+          isLocalChange.current = false;
           editorViewRef.current.dispatch({
             changes: {
               from,
-              to: editorViewRef.current.state.doc.length, // this gets the doc length as the length of text and doc differ, as backend was sending the text and frontend is doc, so above line get the length of the text in the insert , and when we se incremental change then it give that length
+              to,
               insert: text,
             },
           });
+          // Apply to coderef
+          const currentCode = coderef.current;
+          coderef.current =
+            currentCode.slice(0, from) + text + currentCode.slice(to);
+          codechange(coderef.current);
+          isLocalChange.current = true;
         }
-        isLocalChange.current = true;
       });
     }
 
@@ -61,7 +81,7 @@ const Editorcomp = ({ SocketRef, codechange }) => {
         keymap.of(indentWithTab),
         javascript(), // Add JavaScript language support
         oneDark, // Apply dark theme
-        // closeBrackets(),
+        closeBrackets(),
         onUpdate,
       ],
     });

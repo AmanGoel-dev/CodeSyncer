@@ -9,7 +9,7 @@ import { createServer } from "http";
 import { ACTIONS } from "@amangoel-dev/codesyncer";
 const ApiKey = process.env.RapidKey;
 const judgeurl = process.env.Judge0_url;
-console.log(ApiKey, "heleo");
+
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -96,13 +96,12 @@ io.on("connection", (socket) => {
 
     if (roomCodeMap[roomId]) {
       socket.emit(ACTIONS.SYNC_CODE, {
-        from: 0,
-        to: roomCodeMap[roomId].length,
-        text: roomCodeMap[roomId],
+        fullSync: true,
+        code: roomCodeMap[roomId],
       });
     } else {
       // Initialize code for the room if not already set
-      roomCodeMap[roomId] = "// Start coding...";
+      roomCodeMap[roomId] = "";
     }
     // get all the clients in the room
     const clients = getAllConnectedClinets(roomId);
